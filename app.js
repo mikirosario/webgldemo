@@ -53,6 +53,14 @@ setBckrnd = function(gl)
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
+var getHTMLCanvasElement = function()
+{
+	var canvas = document.getElementById('draw_canvas');
+	if (!canvas)
+		console.error('getElementById() failed in getHTMLCanvasElement()');
+	return canvas;
+}
+
 var getWebGLContext = function(canvas)
 {
 	var gl = canvas.getContext('webgl');
@@ -102,7 +110,7 @@ var compileRenderProg = function(gl)
 var InitDemo = function ()
 {
 	console.log('This is working');
-	var canvas = document.getElementById('draw_canvas');
+	var canvas;
 	var gl;
 	var program;
 
@@ -111,7 +119,7 @@ var InitDemo = function ()
 	// canvas.height = window.innerHeight;
 	// gl.viewport(0, 0, window.innerWidth, window.innerHeight);
 
-	if (!(gl = getWebGLContext(canvas)) || !(program = compileRenderProg(gl)))
+	if (!(canvas = getHTMLCanvasElement()) || !(gl = getWebGLContext(canvas)) || !(program = compileRenderProg(gl)))
 		return;
 
 	//DEBUG ONLY
