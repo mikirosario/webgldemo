@@ -47,14 +47,23 @@ var fragmentShaderText =
 '}'
 ].join('\n');
 
-var setBckrnd = function(gl)
+setBckrnd = function(gl)
 {
 	gl.clearColor(0.75, 0.85, 0.8, 1.0);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
+var getWebGLContext = function(canvas)
+{
+	var gl = canvas.getContext('webgl');
+	if (!gl)
+		alert('Your browser does not support WebGL');
+	return gl;
+}
+
 var compileRenderProg = function(gl)
 {
+	var program = null;
 	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
 	var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 
@@ -68,12 +77,11 @@ var compileRenderProg = function(gl)
 		console.error('Fragment Shader compile-time error', gl.getShaderInfoLog(fragmentShader));
 	else
 	{
-		var program = gl.createProgram();					//Create program (= shader pipeline)
+		program = gl.createProgram();						//Create program (= shader pipeline)
 		gl.attachShader(program, vertexShader);				//Attach shader to program
 		gl.attachShader(program, fragmentShader);			//Attach shader to program
-		return program;
 	}
-	return null;
+	return program;
 }
 
 var linkRenderProg = function(gl, program)
@@ -90,19 +98,15 @@ var InitDemo = function ()
 {
 	console.log('This is working');
 	var canvas = document.getElementById('draw_canvas');
-	var gl = canvas.getContext('webgl');
+	var gl;
 	var program;
-
-	if (!gl)
-		alert('Your browser does not support WebGL');
 
 	//dynamic adjustments:
 	// canvas.width = window.innerWidth;
 	// canvas.height = window.innerHeight;
 	// gl.viewport(0, 0, window.innerWidth, window.innerHeight);
 
-	setBckrnd(gl);
-	if (!(program = compileRenderProg(gl)) || !linkRenderProg(gl, program))
+	if (!(gl = getWebGLContext(canvas)) || !(program = compileRenderProg(gl)) || !linkRenderProg(gl, program))
 		return;
 
 	//DEBUG ONLY
@@ -114,13 +118,14 @@ var InitDemo = function ()
 	}
 	//DEBUG ONLY
 
+	setBckrnd(gl);
+
 	var triangleVertices =
 	[ //x, y			R, G, B
 		0.0, 0.5,		1.0, 0.0, 0.5,
 		-0.5, -0.5,		1.0, 0.0, 1.0,
 		0.5, -0.5,		0.0, 0.0, 1.0
 	];
-
 	var triangleVertexBuffer = gl.createBuffer(); //GPU memory
 	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer); //set triangleVertexBuffer as active buffer
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW); //send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
