@@ -90,18 +90,12 @@ var compileRenderProg = function(gl)
 		console.error('attachShader() failed to attach the vertexShader in compileRenderProg()');
 	else if (gl.attachShader(program, fragmentShader))					//Attach fragment shader to program object (returns error code on error)
 		console.error('attachShader() failed to attach the fragmentShader in compileRenderProg()');
+	else if (gl.linkProgram(program))									//Try to link program
+		console.error('linkProgram() failed in compileRenderProg()');
+	else if (!gl.getProgramParameter(program, gl.LINK_STATUS))			//Check link status after link attempt
+		console.error('Bad Link Status after linkProgram() call in compileRenderProg()', gl.getProgramInfoLog(program));
 	else
 		retVal = program;
-	return retVal;
-}
-
-var linkRenderProg = function(gl, program)
-{
-	var retVal;
-
-	gl.linkProgram(program);
-	if (!(retVal = gl.getProgramParameter(program, gl.LINK_STATUS)))
-		console.error('Error linking program', gl.getProgramInfoLog(program));
 	return retVal;
 }
 
@@ -117,7 +111,7 @@ var InitDemo = function ()
 	// canvas.height = window.innerHeight;
 	// gl.viewport(0, 0, window.innerWidth, window.innerHeight);
 
-	if (!(gl = getWebGLContext(canvas)) || !(program = compileRenderProg(gl)) || !linkRenderProg(gl, program))
+	if (!(gl = getWebGLContext(canvas)) || !(program = compileRenderProg(gl)))
 		return;
 
 	//DEBUG ONLY
