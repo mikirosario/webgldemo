@@ -107,6 +107,28 @@ var compileRenderProg = function(gl)
 	return retVal;
 }
 
+var createTriangleBuffer = function (gl)
+{
+	var retVal = null;
+	var triangleVertices =
+	[ //x, y			R, G, B
+		0.0, 0.5,		1.0, 0.0, 0.5,
+		-0.5, -0.5,		1.0, 0.0, 1.0,
+		0.5, -0.5,		0.0, 0.0, 1.0
+	];
+	var triangleVertexBuffer;
+
+	if (!(triangleVertexBuffer = gl.createBuffer()))
+		console.error('createBuffer() failed in createTriangleBuffer()');
+	else if (gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer))									//set triangleVertexBuffer as active buffer
+		console.error('bindBuffer() failed in createTriangleBuffer()');
+	else if (gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW))	//send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
+		console.error('bufferData() failed in creatingTriangleBuffer');
+	else
+		retVal = triangleVertexBuffer;
+	return retVal;
+}
+
 var InitDemo = function ()
 {
 	console.log('This is working');
@@ -131,17 +153,14 @@ var InitDemo = function ()
 	}
 	//DEBUG ONLY
 
-	setBckrnd(gl);
+	var triangleVertexBuffer;
+	if (!(triangleVertexBuffer = createTriangleBuffer(gl)))
+		return ;
 
-	var triangleVertices =
-	[ //x, y			R, G, B
-		0.0, 0.5,		1.0, 0.0, 0.5,
-		-0.5, -0.5,		1.0, 0.0, 1.0,
-		0.5, -0.5,		0.0, 0.0, 1.0
-	];
-	var triangleVertexBuffer = gl.createBuffer(); //GPU memory
-	gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer); //set triangleVertexBuffer as active buffer
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW); //send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
+
+	// var triangleVertexBuffer = gl.createBuffer(); //GPU memory
+	// gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer); //set triangleVertexBuffer as active buffer
+	// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW); //send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
 
 	var positionAttributeLocation = gl.getAttribLocation(program, 'vertPosition');
 	var positionColorAttributeLocation = gl.getAttribLocation(program, 'vertColor');
@@ -166,6 +185,8 @@ var InitDemo = function ()
 	gl.enableVertexAttribArray(positionAttributeLocation);	//enable attribute for use
 	gl.enableVertexAttribArray(positionColorAttributeLocation);
 
+
+	setBckrnd(gl);
 
 	//Main render loop
 	gl.useProgram(program);
