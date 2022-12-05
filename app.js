@@ -63,25 +63,36 @@ var getWebGLContext = function(canvas)
 
 var compileRenderProg = function(gl)
 {
-	var program = null;
-	var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-	var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+	var retVal = null;
+	var vertexShader;
+	var fragmentShader;
+	var program;
 
-	gl.shaderSource(vertexShader, vertexShaderText);		//Send shader source code to gl
-	gl.shaderSource(fragmentShader, fragmentShaderText);	//Send shader source code to gl
-	gl.compileShader(vertexShader);							//Compile shader source code
-	gl.compileShader(fragmentShader);						//Compile shader source code
-	if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
-		console.error('Vertex Shader compile-time error', gl.getShaderInfoLog(vertexShader));
-	else if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
-		console.error('Fragment Shader compile-time error', gl.getShaderInfoLog(fragmentShader));
+	if (!(vertexShader = gl.createShader(gl.VERTEX_SHADER)))			//Create vertex shader object (returns null on error)
+		console.error('createShader() failed to create VERTEX_SHADER object in compileRenderProg()');
+	else if (!(fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)))	//Create fragment shader object (returns null on error)
+		console.error('createShader() failed to create FRAGMENT_SHADER object in compileRenderProg()');
+	else if (gl.shaderSource(vertexShader, vertexShaderText))			//Send vertex shader source code to vertex shader object (returns error code on error)
+		console.error('shaderSource() failed to get vertexShaderText in compileRenderProg()');
+	else if (gl.shaderSource(fragmentShader, fragmentShaderText))		//Send fragment shader source code to fragment shader object (returns error code on error)
+		console.error('shaderSource() failed to get fragmentShaderText in compileRenderProg()');
+	else if (gl.compileShader(vertexShader))							//Try to compile vertex shader (returns error code on error)
+		console.error('compileShader() failed to compile vertexShader in compileRenderProg()');
+	else if (gl.compileShader(fragmentShader))							//Try to compile fragment shader (returns error code on error)
+		console.error('compileShader() failed to compile fragmentShader in compileRenderProg()');
+	else if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))	//Check vertex shader compile status (returns 0 on error)
+		console.error('Vertex Shader compile error in compileRenderProg()', gl.getShaderInfoLog(vertexShader));
+	else if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))	//Check fragment shader compile status (returns 0 on error)
+		console.error('Fragment Shader compile error in compileRenderProg()', gl.getShaderInfoLog(fragmentShader));
+	else if (!(program = gl.createProgram()))							//Create program object (= shader pipeline) (returns null on error)
+		console.error('createProgram() failed in compileRenderProg()');
+	else if (gl.attachShader(program, vertexShader))					//Attach vertex shader to program object  (returns error code on error)
+		console.error('attachShader() failed to attach the vertexShader in compileRenderProg()');
+	else if (gl.attachShader(program, fragmentShader))					//Attach fragment shader to program object (returns error code on error)
+		console.error('attachShader() failed to attach the fragmentShader in compileRenderProg()');
 	else
-	{
-		program = gl.createProgram();						//Create program (= shader pipeline)
-		gl.attachShader(program, vertexShader);				//Attach shader to program
-		gl.attachShader(program, fragmentShader);			//Attach shader to program
-	}
-	return program;
+		retVal = program;
+	return retVal;
 }
 
 var linkRenderProg = function(gl, program)
