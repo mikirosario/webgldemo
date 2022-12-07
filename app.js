@@ -146,9 +146,11 @@ var InitDemo = function ()
 		{
 			if (
 				!this.#createTriangleBuffer(gl) ||
-				!this.#createTriangleAtrributePointers(gl, program)
+				!this.#createTriangleAtrributePointers(gl, program) ||
+				!this.#setVertexAttribPointers(gl) ||
+				!this.#enableVertexAttribArrays(gl)
 			)
-				throw new TypeError("Triangle instantiation failed.");
+				throw 'Triangle instantiation failed.'
 		}
 
 		//Properties
@@ -190,6 +192,51 @@ var InitDemo = function ()
 				retVal = true;
 			return retVal;
 		}
+		#setVertexAttribPointers = function (gl)
+		{
+			var retVal;
+
+			try
+			{
+				gl.vertexAttribPointer(
+					this.vertCoordLocation,			//Attrib location in buffer
+					2,									//Number of elements in attribute
+					gl.FLOAT,							//Type of each element in attribute
+					gl.FALSE,							//Is data normalized?
+					5 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
+					0									//Offset from the beginning of a single vertex to this attribute
+				);
+			
+				gl.vertexAttribPointer(
+					this.vertColorLocation,			//Attrib location in buffer
+					3,									//Number of elements in attribute
+					gl.FLOAT,							//Type of each element in attribute
+					gl.FALSE,							//Is data normalized?
+					5 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
+					2 * Float32Array.BYTES_PER_ELEMENT	//Offset from the beginning of a single vertex to this attribute in bytes
+				);
+				retVal = true;
+			}
+			catch (e)
+			{
+				retVal = false;
+				console.error('vertexAttribPointer() failed in setVertexAttribPointers in Triangle.constructor.\n', e);
+			}
+			return retVal;		
+			// gl.enableVertexAttribArray(triangle.vertCoordLocation);	//enable attribute for use
+			// gl.enableVertexAttribArray(triangle.vertColorLocation);
+		}
+		#enableVertexAttribArrays = function (gl)
+		{
+			var retVal = false;
+			gl.enableVertexAttribArray(this.vertCoordLocation);	//enable attribute for use
+			gl.enableVertexAttribArray(this.vertColorLocation); //enable attribute for use
+			if (gl.getError() == gl.NO_ERROR)
+				retVal = true;
+			else
+				console.error('vertexAttribArray() failed in enableVertexAttribArrays() in Triangle.constructor');
+			return retVal;
+		}
 	};
 
 	//dynamic adjustments:
@@ -209,43 +256,7 @@ var InitDemo = function ()
 	}
 	//DEBUG ONLY
 
-	// var triangleVertexBuffer;
-	// if (!(triangleVertexBuffer = createTriangleBuffer(gl)))
-	// 	return ;
-
-
-	// var triangleVertexBuffer = gl.createBuffer(); //GPU memory
-	// gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer); //set triangleVertexBuffer as active buffer
-	// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW); //send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
-
 	var triangle = new Triangle(gl, program);
-
-	// var triangleVertCoordLocation;
-	// var triangleVertColorLocation;
-
-	// var positionAttributeLocation = gl.getAttribLocation(program, 'vertPosition');
-	// var positionColorAttributeLocation = gl.getAttribLocation(program, 'vertColor');
-	gl.vertexAttribPointer(
-		triangle.vertCoordLocation,			//Attrib location in buffer
-		2,									//Number of elements in attribute
-		gl.FLOAT,							//Type of each element in attribute
-		gl.FALSE,							//Is data normalized?
-		5 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
-		0									//Offset from the beginning of a single vertex to this attribute
-	);
-
-	gl.vertexAttribPointer(
-		triangle.vertColorLocation,			//Attrib location in buffer
-		3,									//Number of elements in attribute
-		gl.FLOAT,							//Type of each element in attribute
-		gl.FALSE,							//Is data normalized?
-		5 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
-		2 * Float32Array.BYTES_PER_ELEMENT	//Offset from the beginning of a single vertex to this attribute in bytes
-	);
-
-	gl.enableVertexAttribArray(triangle.vertCoordLocation);	//enable attribute for use
-	gl.enableVertexAttribArray(triangle.vertColorLocation);
-
 
 	setBckrnd(gl);
 
