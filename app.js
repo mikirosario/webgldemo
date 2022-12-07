@@ -107,34 +107,6 @@ var compileRenderProg = function(gl)
 	return retVal;
 }
 
-// var createTriangleBuffer = function (gl)
-// {
-// 	var retVal = null;
-// 	var triangleVertices =
-// 	[ //x, y			R, G, B
-// 		0.0, 0.5,		1.0, 0.0, 0.5,
-// 		-0.5, -0.5,		1.0, 0.0, 1.0,
-// 		0.5, -0.5,		0.0, 0.0, 1.0
-// 	];
-// 	var triangleVertexBuffer;
-
-// 	if (!(triangleVertexBuffer = gl.createBuffer()))
-// 		console.error('createBuffer() failed in createTriangleBuffer()');
-// 	else if (gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexBuffer))									//set triangleVertexBuffer as active buffer
-// 		console.error('bindBuffer() failed in createTriangleBuffer()');
-// 	else if (gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW))	//send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
-// 		console.error('bufferData() failed in creatingTriangleBuffer');
-// 	else
-// 		retVal = triangleVertexBuffer;
-// 	return retVal;
-// }
-
-// var createTriangleAtrributePointers = function (gl, vertCoordLocation, vertColorLocation)
-// {
-// 	vertCoordLocation = gl.getAttribLocation(program, 'vertPosition');
-// 	vertColorLocation = gl.getAttribLocation(program, 'vertColor');
-// }
-
 var InitDemo = function ()
 {
 	console.log('This is working');
@@ -222,9 +194,7 @@ var InitDemo = function ()
 				retVal = false;
 				console.error('vertexAttribPointer() failed in setVertexAttribPointers in Triangle.constructor.\n', e);
 			}
-			return retVal;		
-			// gl.enableVertexAttribArray(triangle.vertCoordLocation);	//enable attribute for use
-			// gl.enableVertexAttribArray(triangle.vertColorLocation);
+			return retVal;
 		}
 		#enableVertexAttribArrays = function (gl)
 		{
