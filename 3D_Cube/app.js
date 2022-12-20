@@ -127,7 +127,7 @@ var InitDemo = function ()
 				!this.#createTriangleAtrributePointers(gl, program) ||
 				!this.#setVertexAttribPointers(gl) ||
 				!this.#enableVertexAttribArrays(gl) ||
-				!this.#setVertexUniformPointers(gl) ||
+				!this.#createTriangleUniformPointers(gl) ||
 				!this.#initializeVertexUniformMatrices(gl) //initialize uniform matrices to identity matrix
 			)
 				throw 'Triangle instantiation failed.'
@@ -218,14 +218,14 @@ var InitDemo = function ()
 				console.error('vertexAttribArray() failed in enableVertexAttribArrays() in Triangle.constructor');
 			return retVal;
 		}
-		#setVertexUniformPointers = function (gl)
+		#createTriangleUniformPointers = function (gl)
 		{
 			var retVal = false;
-			if ((this.matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld')) < 0)
+			if ((this.matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld')) == null)
 				console.error('getUniformLocation() failed for mWorld in createTriangleAttributePointers() in Triangle.constructor()');
-			else if ((this.matViewUniformLocation = gl.getUniformLocation(program, 'mView')) < 0)
+			else if ((this.matViewUniformLocation = gl.getUniformLocation(program, 'mView')) == null)
 				console.error('getUniformLocation() failed for mView in createTriangleAttributePointers() in Triangle.constructor()');
-			else if ((this.matProjectionUniformLocation = gl.getUniformLocation(program, 'mProjection')) < 0)
+			else if ((this.matProjectionUniformLocation = gl.getUniformLocation(program, 'mProjection')) == null)
 				console.error('getUniformLocation() failed for mProjection in createTriangleAttributePointers() in Triangle.constructor()');
 			else
 				retVal = true;
