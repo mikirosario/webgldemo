@@ -23,7 +23,40 @@
 
 
 //uniform is global var that does not change per vertex, but is still an input
-//matrix multiplication is not commutative; order of operations depends if row-major or column-major; in OpenGL the right-most operation is done first
+//
+// Matrix Multiplication Notes
+//matrix multiplication is not commutative; order of operations matters
+//relation of order of operations to syntax depends if row-major or column-major
+//in OpenGL, which is column-major, ** the right-most operation is done first!! **
+//1 2		5 6		1*5+2*7 1*6+2*8		19 22		
+//3 4	*	7 8	==	3*5+4*7 3*6+4*8	==	43 50
+//		|
+//		v
+// column-major float arrays
+// float[8] cMajorMatA = { 1, 3, 2, 4 };
+// float[8] cMajorMatB = { 5, 7, 6, 8 };
+// float[8] answer;
+// 1 3 2 4 * 5 7 6 8 == 19 43 22 50
+// 		==
+// answer[0] = cMajorMatA[0] * cMajorMatB[0] + cMajorMatA[2] * cMajorMatB[1];
+// answer[1] = cMajorMatA[1] * cMajorMatB[0] + cMajorMatA[3] * cMajorMatB[1];
+// answer[2] = cMajorMatA[0] * cMajorMatB[2] + cMajorMatA[2] * cMajorMatB[3];
+// answer[3] = cMajorMatA[1] * cMajorMatB[2] + cMajorMatA[3] * cMajorMatB[3];
+// answer = CMajorB * CMajorA;
+//
+//1 2		5 6			9 10
+//3 4	*	7 8		*	11 12
+//		|
+//		v
+// column major float arrays
+// float[8] cMajorMatA = { 1, 3, 2, 4 };
+// float[8] cMajorMatB = { 5, 7, 6, 8 };
+// float[8] cMajorMatC = { 9, 10, 11, 12 };
+// float[8] answer;
+// A * B * C
+//	|
+//	v
+// answer = cMajorMatC * cMajorMatB * cMajorMatA;
 var vertexShaderText =
 [
 'precision mediump float;',
@@ -31,9 +64,9 @@ var vertexShaderText =
 'attribute vec3 vertPosition;',
 'attribute vec3 vertColor;',
 'varying vec3 fragColor;',
-'uniform mat4 mWorld;',			//World Matrix
-'uniform mat4 mView;',			//View Matrix
-'uniform mat4 mProjection;',	//Projection Matrix
+'uniform mat4 mWorld;',			//World Matrix - Rotate object in 3D space
+'uniform mat4 mView;',			//View Matrix - Position object relative to imaginary camera position
+'uniform mat4 mProjection;',	//Projection Matrix - Project 2D representation of object to screen space
 '',
 'void main()',
 '{',
@@ -53,6 +86,133 @@ var fragmentShaderText =
 '}'
 ].join('\n');
 
+class Triangle {
+	constructor(gl, program)
+	{
+		if (
+			!this.#createTriangleBuffer(gl) ||
+			!this.#createTriangleAtrributePointers(gl, program) ||
+			!this.#setVertexAttribPointers(gl) ||
+			!this.#enableVertexAttribArrays(gl) ||
+			!this.#createTriangleUniformPointers(gl, program) ||
+			!this.#initializeVertexUniformMatrices(gl) //initialize uniform matrices to identity matrix
+		)
+			throw 'Triangle instantiation failed.'
+	}
+
+	//Properties
+	triangleVertices =
+	[ //x, y, z				R, G, B
+		0.0, 0.5, 0.0,		1.0, 0.0, 0.5,
+		-0.5, -0.5, 0.0,	1.0, 0.0, 1.0,
+		0.5, -0.5, 0.0,		0.0, 0.0, 1.0
+	];
+	triangleVertexBuffer;
+	vertCoordLocation;
+	vertColorLocation;
+	matWorldUniformLocation;
+	matViewUniformLocation;
+	matProjectionUniformLocation;
+
+	//Methods
+	#createTriangleBuffer = function (gl)
+	{
+		var retVal = false;
+
+		if (!(this.triangleVertexBuffer = gl.createBuffer()))
+			console.error('createBuffer() failed in createTriangleBuffer() in Triangle.constructor()');
+		else if (gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleVertexBuffer))									//set triangleVertexBuffer as active buffer
+			console.error('bindBuffer() failed in createTriangleBuffer() in Triangle.constructor()');
+		else if (gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.triangleVertices), gl.STATIC_DRAW))	//send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
+			console.error('bufferData() failed in createTriangleBuffer() in Triangle.constructor()');
+		else
+			retVal = true;
+		return retVal;
+	}
+	#createTriangleAtrributePointers = function (gl, program)
+	{
+		var retVal = false;
+
+		if ((this.vertCoordLocation = gl.getAttribLocation(program, 'vertPosition')) < 0)
+			console.error('getAttribLocation() failed for vertPosition in createTriangleAttributePointers() in Triangle.constructor()');
+		else if
+			((this.vertColorLocation = gl.getAttribLocation(program, 'vertColor')) < 0)
+			console.error('getAttribLocation() failed for vertColor in createTriangleAttributePointers() in Triangle.constructor()');
+		else
+			retVal = true;
+		return retVal;
+	}
+	#setVertexAttribPointers = function (gl)
+	{
+		var retVal;
+
+		try
+		{
+			gl.vertexAttribPointer(
+				this.vertCoordLocation,			//Attrib location in buffer
+				3,									//Number of elements in attribute
+				gl.FLOAT,							//Type of each element in attribute
+				gl.FALSE,							//Is data normalized?
+				6 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
+				0									//Offset from the beginning of a single vertex to this attribute
+			);
+		
+			gl.vertexAttribPointer(
+				this.vertColorLocation,			//Attrib location in buffer
+				3,									//Number of elements in attribute
+				gl.FLOAT,							//Type of each element in attribute
+				gl.FALSE,							//Is data normalized?
+				6 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
+				3 * Float32Array.BYTES_PER_ELEMENT	//Offset from the beginning of a single vertex to this attribute in bytes
+			);
+			retVal = true;
+		}
+		catch (e)
+		{
+			retVal = false;
+			console.error('vertexAttribPointer() failed in setVertexAttribPointers in Triangle.constructor.\n', e);
+		}
+		return retVal;
+	}
+	#enableVertexAttribArrays = function (gl)
+	{
+		var retVal = false;
+		gl.enableVertexAttribArray(this.vertCoordLocation);	//enable attribute for use
+		gl.enableVertexAttribArray(this.vertColorLocation); //enable attribute for use
+		if (gl.getError() == gl.NO_ERROR)
+			retVal = true;
+		else
+			console.error('vertexAttribArray() failed in enableVertexAttribArrays() in Triangle.constructor');
+		return retVal;
+	}
+	#createTriangleUniformPointers = function (gl, program)
+	{
+		var retVal = false;
+		if ((this.matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld')) == null)
+			console.error('getUniformLocation() failed for mWorld in createTriangleAttributePointers() in Triangle.constructor()');
+		else if ((this.matViewUniformLocation = gl.getUniformLocation(program, 'mView')) == null)
+			console.error('getUniformLocation() failed for mView in createTriangleAttributePointers() in Triangle.constructor()');
+		else if ((this.matProjectionUniformLocation = gl.getUniformLocation(program, 'mProjection')) == null)
+			console.error('getUniformLocation() failed for mProjection in createTriangleAttributePointers() in Triangle.constructor()');
+		else
+			retVal = true;
+		return retVal;
+	}
+	#initializeVertexUniformMatrices = function (gl)
+	{
+		var retVal = false;
+		var matIdentity = new Float32Array(16);
+		glMatrix.mat4.identity(matIdentity);
+		gl.uniformMatrix4fv(this.matWorldUniformLocation, gl.FALSE, matIdentity);
+		gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, matIdentity);
+		gl.uniformMatrix4fv(this.matProjectionUniformLocation, gl.FALSE, matIdentity);
+		if (gl.getError() == gl.NO_ERROR)
+			retVal = true;
+		else
+			console.error('uniformMatrix4fv() failed in initializeVertexUniformMatrices() in Triangle.constructor');
+		return retVal;
+	}
+};
 setBckrnd = function(gl)
 {
 	gl.clearColor(0.75, 0.85, 0.8, 1.0);
@@ -119,133 +279,7 @@ var InitDemo = function ()
 	var canvas;
 	var gl;
 	var program;
-	class Triangle {
-		constructor(gl, program)
-		{
-			if (
-				!this.#createTriangleBuffer(gl) ||
-				!this.#createTriangleAtrributePointers(gl, program) ||
-				!this.#setVertexAttribPointers(gl) ||
-				!this.#enableVertexAttribArrays(gl) ||
-				!this.#createTriangleUniformPointers(gl) ||
-				!this.#initializeVertexUniformMatrices(gl) //initialize uniform matrices to identity matrix
-			)
-				throw 'Triangle instantiation failed.'
-		}
 
-		//Properties
-		triangleVertices =
-		[ //x, y, z				R, G, B
-			0.0, 0.5, 0.0,		1.0, 0.0, 0.5,
-			-0.5, -0.5, 0.0,	1.0, 0.0, 1.0,
-			0.5, -0.5, 0.0,		0.0, 0.0, 1.0
-		];
-		triangleVertexBuffer;
-		vertCoordLocation;
-		vertColorLocation;
-		matWorldUniformLocation;
-		matViewUniformLocation;
-		matProjectionUniformLocation;
-
-		//Methods
-		#createTriangleBuffer = function (gl)
-		{
-			var retVal = false;
-
-			if (!(this.triangleVertexBuffer = gl.createBuffer()))
-				console.error('createBuffer() failed in createTriangleBuffer() in Triangle.constructor()');
-			else if (gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleVertexBuffer))									//set triangleVertexBuffer as active buffer
-				console.error('bindBuffer() failed in createTriangleBuffer() in Triangle.constructor()');
-			else if (gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.triangleVertices), gl.STATIC_DRAW))	//send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
-				console.error('bufferData() failed in createTriangleBuffer() in Triangle.constructor()');
-			else
-				retVal = true;
-			return retVal;
-		}
-		#createTriangleAtrributePointers = function (gl, program)
-		{
-			var retVal = false;
-
-			if ((this.vertCoordLocation = gl.getAttribLocation(program, 'vertPosition')) < 0)
-				console.error('getAttribLocation() failed for vertPosition in createTriangleAttributePointers() in Triangle.constructor()');
-			else if
-				((this.vertColorLocation = gl.getAttribLocation(program, 'vertColor')) < 0)
-				console.error('getAttribLocation() failed for vertColor in createTriangleAttributePointers() in Triangle.constructor()');
-			else
-				retVal = true;
-			return retVal;
-		}
-		#setVertexAttribPointers = function (gl)
-		{
-			var retVal;
-
-			try
-			{
-				gl.vertexAttribPointer(
-					this.vertCoordLocation,			//Attrib location in buffer
-					3,									//Number of elements in attribute
-					gl.FLOAT,							//Type of each element in attribute
-					gl.FALSE,							//Is data normalized?
-					6 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
-					0									//Offset from the beginning of a single vertex to this attribute
-				);
-			
-				gl.vertexAttribPointer(
-					this.vertColorLocation,			//Attrib location in buffer
-					3,									//Number of elements in attribute
-					gl.FLOAT,							//Type of each element in attribute
-					gl.FALSE,							//Is data normalized?
-					6 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
-					3 * Float32Array.BYTES_PER_ELEMENT	//Offset from the beginning of a single vertex to this attribute in bytes
-				);
-				retVal = true;
-			}
-			catch (e)
-			{
-				retVal = false;
-				console.error('vertexAttribPointer() failed in setVertexAttribPointers in Triangle.constructor.\n', e);
-			}
-			return retVal;
-		}
-		#enableVertexAttribArrays = function (gl)
-		{
-			var retVal = false;
-			gl.enableVertexAttribArray(this.vertCoordLocation);	//enable attribute for use
-			gl.enableVertexAttribArray(this.vertColorLocation); //enable attribute for use
-			if (gl.getError() == gl.NO_ERROR)
-				retVal = true;
-			else
-				console.error('vertexAttribArray() failed in enableVertexAttribArrays() in Triangle.constructor');
-			return retVal;
-		}
-		#createTriangleUniformPointers = function (gl)
-		{
-			var retVal = false;
-			if ((this.matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld')) == null)
-				console.error('getUniformLocation() failed for mWorld in createTriangleAttributePointers() in Triangle.constructor()');
-			else if ((this.matViewUniformLocation = gl.getUniformLocation(program, 'mView')) == null)
-				console.error('getUniformLocation() failed for mView in createTriangleAttributePointers() in Triangle.constructor()');
-			else if ((this.matProjectionUniformLocation = gl.getUniformLocation(program, 'mProjection')) == null)
-				console.error('getUniformLocation() failed for mProjection in createTriangleAttributePointers() in Triangle.constructor()');
-			else
-				retVal = true;
-			return retVal;
-		}
-		#initializeVertexUniformMatrices = function (gl)
-		{
-			var retVal = false;
-			var matIdentity = new Float32Array(16);
-			glMatrix.mat4.identity(matIdentity);
-			gl.uniformMatrix4fv(this.matWorldUniformLocation, gl.FALSE, matIdentity);
-			gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, matIdentity);
-			gl.uniformMatrix4fv(this.matProjectionUniformLocation, gl.FALSE, matIdentity);
-			if (gl.getError() == gl.NO_ERROR)
-				retVal = true;
-			else
-				console.error('uniformMatrix4fv() failed in initializeVertexUniformMatrices() in Triangle.constructor');
-			return retVal;
-		}
-	};
 
 	//dynamic adjustments:
 	// canvas.width = window.innerWidth;
