@@ -57,6 +57,10 @@
 //	|
 //	v
 // answer = cMajorMatC * cMajorMatB * cMajorMatA;
+var canvas;
+var matIdentity = new Float32Array(16);
+glMatrix.mat4.identity(matIdentity);
+
 var vertexShaderText =
 [
 'precision mediump float;',
@@ -113,6 +117,8 @@ class Triangle {
 	matWorldUniformLocation;
 	matViewUniformLocation;
 	matProjectionUniformLocation;
+	matViewValue;
+	matProjectionValue;
 
 	//Methods
 	#createTriangleBuffer = function (gl)
@@ -201,11 +207,18 @@ class Triangle {
 	#initializeVertexUniformMatrices = function (gl)
 	{
 		var retVal = false;
-		var matIdentity = new Float32Array(16);
-		glMatrix.mat4.identity(matIdentity);
+		this.matViewValue = new Float32Array(16);
+		this.matProjectionValue = new Float32Array(16);
+												//camera position xyz, looking at xyz, up direction xyz (+y is up)
+		this.matViewValue = glMatrix.mat4.lookAt(this.matViewValue, [0, 0, -2], [0, 0, 0], [0, 1, 0]);
+												//vertical fov in radians, aspect ratio (viewport width/height), near bound frustum, far bound frustum
+		this.matProjectionValue = glMatrix.mat4.perspective(this.matProjectionValue, glMatrix.glMatrix.toRadian(45), canvas.width/canvas.height, 0.1, 1000.0);
+
 		gl.uniformMatrix4fv(this.matWorldUniformLocation, gl.FALSE, matIdentity);
-		gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, matIdentity);
-		gl.uniformMatrix4fv(this.matProjectionUniformLocation, gl.FALSE, matIdentity);
+		//gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, matIdentity);
+
+		gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, this.matViewValue);
+		gl.uniformMatrix4fv(this.matProjectionUniformLocation, gl.FALSE, this.matProjectionValue);
 		if (gl.getError() == gl.NO_ERROR)
 			retVal = true;
 		else
@@ -276,7 +289,6 @@ var compileRenderProg = function(gl)
 var InitDemo = function ()
 {
 	console.log('This is working');
-	var canvas;
 	var gl;
 	var program;
 
