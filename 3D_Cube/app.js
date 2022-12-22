@@ -11,6 +11,12 @@
 // '}'
 // ].join('\n');
 
+
+/* how did this get here? O_O
+const { glMatrix } = require("../gl-matrix_3-4-0");
+*/
+
+
 // var fragmentShaderText =
 // [
 // 'precision mediump float;',
@@ -93,18 +99,20 @@ var fragmentShaderText =
 class Triangle {
 	constructor(gl, program)
 	{
+		this.#_gl = gl;
 		if (
-			!this.#createTriangleBuffer(gl) ||
-			!this.#createTriangleAtrributePointers(gl, program) ||
-			!this.#setVertexAttribPointers(gl) ||
-			!this.#enableVertexAttribArrays(gl) ||
-			!this.#createTriangleUniformPointers(gl, program) ||
-			!this.#initializeVertexUniformMatrices(gl) //initialize uniform matrices to identity matrix
+			!this.#createTriangleBuffer() ||
+			!this.#createTriangleAtrributePointers(program) ||
+			!this.#setVertexAttribPointers() ||
+			!this.#enableVertexAttribArrays() ||
+			!this.#createTriangleUniformPointers(program) ||
+			!this.#initializeVertexUniformMatrices() //initialize uniform matrices to identity matrix
 		)
 			throw 'Triangle instantiation failed.'
 	}
 
 	//Properties
+	#_gl;
 	triangleVertices =
 	[ //x, y, z				R, G, B
 		0.0, 0.5, 0.0,		1.0, 0.0, 0.5,
@@ -117,57 +125,58 @@ class Triangle {
 	matWorldUniformLocation;
 	matViewUniformLocation;
 	matProjectionUniformLocation;
+	#_matWorldMatrix;
 	matViewValue;
 	matProjectionValue;
 
 	//Methods
-	#createTriangleBuffer = function (gl)
+	#createTriangleBuffer = function ()
 	{
 		var retVal = false;
 
-		if (!(this.triangleVertexBuffer = gl.createBuffer()))
+		if (!(this.triangleVertexBuffer = this.gl.createBuffer()))
 			console.error('createBuffer() failed in createTriangleBuffer() in Triangle.constructor()');
-		else if (gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleVertexBuffer))									//set triangleVertexBuffer as active buffer
+		else if (this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.triangleVertexBuffer))									//set triangleVertexBuffer as active buffer
 			console.error('bindBuffer() failed in createTriangleBuffer() in Triangle.constructor()');
-		else if (gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.triangleVertices), gl.STATIC_DRAW))	//send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
+		else if (this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.triangleVertices), this.gl.STATIC_DRAW))	//send data to active buffer (buffer type, data cast to 32 bit float, cpu->gpu direct, with no subsequent changes)
 			console.error('bufferData() failed in createTriangleBuffer() in Triangle.constructor()');
 		else
 			retVal = true;
 		return retVal;
 	}
-	#createTriangleAtrributePointers = function (gl, program)
+	#createTriangleAtrributePointers = function (program)
 	{
 		var retVal = false;
 
-		if ((this.vertCoordLocation = gl.getAttribLocation(program, 'vertPosition')) < 0)
+		if ((this.vertCoordLocation = this.gl.getAttribLocation(program, 'vertPosition')) < 0)
 			console.error('getAttribLocation() failed for vertPosition in createTriangleAttributePointers() in Triangle.constructor()');
 		else if
-			((this.vertColorLocation = gl.getAttribLocation(program, 'vertColor')) < 0)
+			((this.vertColorLocation = this.gl.getAttribLocation(program, 'vertColor')) < 0)
 			console.error('getAttribLocation() failed for vertColor in createTriangleAttributePointers() in Triangle.constructor()');
 		else
 			retVal = true;
 		return retVal;
 	}
-	#setVertexAttribPointers = function (gl)
+	#setVertexAttribPointers = function ()
 	{
 		var retVal;
 
 		try
 		{
-			gl.vertexAttribPointer(
-				this.vertCoordLocation,			//Attrib location in buffer
+			this.gl.vertexAttribPointer(
+				this.vertCoordLocation,				//Attrib location in buffer
 				3,									//Number of elements in attribute
-				gl.FLOAT,							//Type of each element in attribute
-				gl.FALSE,							//Is data normalized?
+				this.gl.FLOAT,						//Type of each element in attribute
+				this.gl.FALSE,						//Is data normalized?
 				6 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
 				0									//Offset from the beginning of a single vertex to this attribute
 			);
 		
-			gl.vertexAttribPointer(
-				this.vertColorLocation,			//Attrib location in buffer
+			this.gl.vertexAttribPointer(
+				this.vertColorLocation,				//Attrib location in buffer
 				3,									//Number of elements in attribute
-				gl.FLOAT,							//Type of each element in attribute
-				gl.FALSE,							//Is data normalized?
+				this.gl.FLOAT,						//Type of each element in attribute
+				this.gl.FALSE,						//Is data normalized?
 				6 * Float32Array.BYTES_PER_ELEMENT,	//Size of an individual vertex in bytes
 				3 * Float32Array.BYTES_PER_ELEMENT	//Offset from the beginning of a single vertex to this attribute in bytes
 			);
@@ -180,31 +189,31 @@ class Triangle {
 		}
 		return retVal;
 	}
-	#enableVertexAttribArrays = function (gl)
+	#enableVertexAttribArrays = function ()
 	{
 		var retVal = false;
-		gl.enableVertexAttribArray(this.vertCoordLocation);	//enable attribute for use
-		gl.enableVertexAttribArray(this.vertColorLocation); //enable attribute for use
-		if (gl.getError() == gl.NO_ERROR)
+		this.gl.enableVertexAttribArray(this.vertCoordLocation);	//enable attribute for use
+		this.gl.enableVertexAttribArray(this.vertColorLocation);	//enable attribute for use
+		if (this.gl.getError() == this.gl.NO_ERROR)
 			retVal = true;
 		else
 			console.error('vertexAttribArray() failed in enableVertexAttribArrays() in Triangle.constructor');
 		return retVal;
 	}
-	#createTriangleUniformPointers = function (gl, program)
+	#createTriangleUniformPointers = function (program)
 	{
 		var retVal = false;
-		if ((this.matWorldUniformLocation = gl.getUniformLocation(program, 'mWorld')) == null)
+		if ((this.matWorldUniformLocation = this.gl.getUniformLocation(program, 'mWorld')) == null)
 			console.error('getUniformLocation() failed for mWorld in createTriangleAttributePointers() in Triangle.constructor()');
-		else if ((this.matViewUniformLocation = gl.getUniformLocation(program, 'mView')) == null)
+		else if ((this.matViewUniformLocation = this.gl.getUniformLocation(program, 'mView')) == null)
 			console.error('getUniformLocation() failed for mView in createTriangleAttributePointers() in Triangle.constructor()');
-		else if ((this.matProjectionUniformLocation = gl.getUniformLocation(program, 'mProjection')) == null)
+		else if ((this.matProjectionUniformLocation = this.gl.getUniformLocation(program, 'mProjection')) == null)
 			console.error('getUniformLocation() failed for mProjection in createTriangleAttributePointers() in Triangle.constructor()');
 		else
 			retVal = true;
 		return retVal;
 	}
-	#initializeVertexUniformMatrices = function (gl)
+	#initializeVertexUniformMatrices = function ()
 	{
 		var retVal = false;
 		this.matViewValue = new Float32Array(16);
@@ -214,16 +223,29 @@ class Triangle {
 												//vertical fov in radians, aspect ratio (viewport width/height), near bound frustum, far bound frustum
 		this.matProjectionValue = glMatrix.mat4.perspective(this.matProjectionValue, glMatrix.glMatrix.toRadian(45), canvas.width/canvas.height, 0.1, 1000.0);
 
-		gl.uniformMatrix4fv(this.matWorldUniformLocation, gl.FALSE, matIdentity);
+		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, matIdentity);
 		//gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, matIdentity);
 
-		gl.uniformMatrix4fv(this.matViewUniformLocation, gl.FALSE, this.matViewValue);
-		gl.uniformMatrix4fv(this.matProjectionUniformLocation, gl.FALSE, this.matProjectionValue);
-		if (gl.getError() == gl.NO_ERROR)
+		this.gl.uniformMatrix4fv(this.matViewUniformLocation, this.gl.FALSE, this.matViewValue);
+		this.gl.uniformMatrix4fv(this.matProjectionUniformLocation, this.gl.FALSE, this.matProjectionValue);
+		if (this.gl.getError() == this.gl.NO_ERROR)
 			retVal = true;
 		else
 			console.error('uniformMatrix4fv() failed in initializeVertexUniformMatrices() in Triangle.constructor');
 		return retVal;
+	}
+	get gl()
+	{
+		return this.#_gl;
+	}
+	get matWorldMatrix()
+	{
+		return this.#_matWorldMatrix;
+	}
+	set matWorldMatrix(value)
+	{
+		this.#_matWorldMatrix = value;
+		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, gl.FALSE, this.#_matWorldMatrix);
 	}
 };
 setBckrnd = function(gl)
@@ -316,6 +338,20 @@ var InitDemo = function ()
 	setBckrnd(gl);
 
 	//Main render loop
+	//requestAnimationFrame uses 'tail recursion'.
+	//Calling itself is the last thing it does before returning, so it does not overflow the stack.
+	// var angle = 0;
+	// var loop = function (shape)
+	// {
+	// 				//ms since window opened / 1000 == seconds since window opened
+	// 				//seconds since window opened / 6 == 
+	// 				//2PI == 1 full rotation 
+	// 	angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
+	// 	//glMatrix.mat4.rotate(shape.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
+	// 	gl.drawArrays(gl.TRIANGLES, 0, 3); //uses active buffer
+	// 	requestAnimationFrame(loop(triangle));
+	// }
 
+	//requestAnimationFrame(loop(triangle));
 	gl.drawArrays(gl.TRIANGLES, 0, 3); //uses active buffer
 }
