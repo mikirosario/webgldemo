@@ -125,7 +125,7 @@ class Triangle {
 	matWorldUniformLocation;
 	matViewUniformLocation;
 	matProjectionUniformLocation;
-	#_matWorldMatrix;
+	#_matWorldMatrix = new Float32Array(16);
 	matViewValue;
 	matProjectionValue;
 
@@ -242,10 +242,11 @@ class Triangle {
 	{
 		return this.#_matWorldMatrix;
 	}
-	set matWorldMatrix(value)
+	setRot = function()
 	{
-		this.#_matWorldMatrix = value;
-		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, gl.FALSE, this.#_matWorldMatrix);
+		var angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
+		glMatrix.mat4.rotate(this.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
+		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
 	}
 };
 setBckrnd = function(gl)
@@ -340,18 +341,19 @@ var InitDemo = function ()
 	//Main render loop
 	//requestAnimationFrame uses 'tail recursion'.
 	//Calling itself is the last thing it does before returning, so it does not overflow the stack.
-	// var angle = 0;
-	// var loop = function (shape)
-	// {
-	// 				//ms since window opened / 1000 == seconds since window opened
-	// 				//seconds since window opened / 6 == 
-	// 				//2PI == 1 full rotation 
-	// 	angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
-	// 	//glMatrix.mat4.rotate(shape.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
-	// 	gl.drawArrays(gl.TRIANGLES, 0, 3); //uses active buffer
-	// 	requestAnimationFrame(loop(triangle));
-	// }
+	var angle = 0;
+	var loop = function (shape)
+	{
+					//ms since window opened / 1000 == seconds since window opened
+					//seconds since window opened / 6 == ??
+					//2 * PI == 1 full rotation 
+		shape.setRot();
 
-	//requestAnimationFrame(loop(triangle));
-	gl.drawArrays(gl.TRIANGLES, 0, 3); //uses active buffer
+		setBckrnd(shape.gl);
+		shape.gl.drawArrays(shape.gl.TRIANGLES, 0, 3); //uses active buffer
+		requestAnimationFrame(() => loop(shape)); //ChatGPT taught me how to wrap this call in an anon function, so I can pass it with its argument :D
+	}
+
+	requestAnimationFrame(() => loop(triangle));
+	//gl.drawArrays(gl.TRIANGLES, 0, 3); //uses active buffer
 }
