@@ -129,7 +129,7 @@ class Triangle {
 	matViewValue;
 	matProjectionValue;
 
-	//Methods
+	//Private Methods
 	#createTriangleBuffer = function ()
 	{
 		var retVal = false;
@@ -234,6 +234,21 @@ class Triangle {
 			console.error('uniformMatrix4fv() failed in initializeVertexUniformMatrices() in Triangle.constructor');
 		return retVal;
 	}
+
+	//Public Methods
+	rotate = function()
+	{
+		//var angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
+			//ms since window opened / 1000 == seconds since window opened
+			//seconds since window opened / 6 == 1/6 of time since window opened
+			//2 * PI == 1 full rotation 
+			// Every sixth of the time since the window opened, a sixth of a rotation is done?
+		var angle = performance.now() * 0.001 * 0.6 * 2 * Math.PI;			  //x, y, z
+		glMatrix.mat4.rotate(this.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
+		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
+	}
+
+	//Getters
 	get gl()
 	{
 		return this.#_gl;
@@ -241,12 +256,6 @@ class Triangle {
 	get matWorldMatrix()
 	{
 		return this.#_matWorldMatrix;
-	}
-	setRot = function()
-	{
-		var angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
-		glMatrix.mat4.rotate(this.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
-		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
 	}
 };
 setBckrnd = function(gl)
@@ -344,11 +353,8 @@ var InitDemo = function ()
 	var angle = 0;
 	var loop = function (shape)
 	{
-					//ms since window opened / 1000 == seconds since window opened
-					//seconds since window opened / 6 == ??
-					//2 * PI == 1 full rotation 
-		shape.setRot();
 
+		shape.rotate();
 		setBckrnd(shape.gl);
 		shape.gl.drawArrays(shape.gl.TRIANGLES, 0, 3); //uses active buffer
 		requestAnimationFrame(() => loop(shape)); //ChatGPT taught me how to wrap this call in an anon function, so I can pass it with its argument :D
