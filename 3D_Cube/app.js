@@ -470,6 +470,15 @@ class Cube {
 	}
 
 	//Public Methods
+
+	animate = function(animation)
+	{
+		animation();
+		setBckrnd(this.gl);
+		this.gl.drawElements(this.gl.TRIANGLES, this.cubeIndices.length, this.gl.UNSIGNED_SHORT, 0);
+		requestAnimationFrame(() => this.animate(animation)); //ChatGPT taught me how to wrap this call in an anon function, so I can pass it with its argument :D
+	}
+
 	rotate = function()
 	{
 		//var angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
@@ -481,6 +490,11 @@ class Cube {
 		var angle = performance.now() * 0.001 * 0.06 * 2 * Math.PI;			  //x, y, z
 		glMatrix.mat4.rotate(this.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
 		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
+	}
+
+	Animation =
+	{
+		ROTATE_Y: this.rotate.bind(this) //Rotate along the Y axis
 	}
 
 	//Getters
@@ -591,15 +605,5 @@ var InitDemo = function ()
 	gl.enable(gl.CULL_FACE); //don't do math for culled faces
 	gl.frontFace(gl.CCW); //A face is formed by the order of the vertices appearing counter-clockwise to each other
 	gl.cullFace(gl.BACK); //Cull the faces at the back
-	var loop = function (shape)
-	{
-
-		shape.rotate();
-		setBckrnd(shape.gl);
-		//shape.gl.drawArrays(shape.gl.TRIANGLES, 0, 3); //uses active array buffer
-		shape.gl.drawElements(shape.gl.TRIANGLES, shape.cubeIndices.length, shape.gl.UNSIGNED_SHORT, 0);
-		requestAnimationFrame(() => loop(shape)); //ChatGPT taught me how to wrap this call in an anon function, so I can pass it with its argument :D
-	}
-	requestAnimationFrame(() => loop(cube));
-	//gl.drawArrays(gl.TRIANGLES, 0, 3); //uses active buffer
+	cube.animate(cube.Animation.ROTATE_Y);
 }
