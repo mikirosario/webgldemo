@@ -487,11 +487,11 @@ class Cube {
 			//2 * PI == 1 full rotation 
 			// Every sixth of the time since the window opened, a sixth of a rotation is done?
 		//console.log((performance.now() / 1000 / 6 * 2 * Math.PI) * (180.0 / Math.PI));
-		var angle = performance.now() * 0.001 * 0.06 * 2 * Math.PI;			  //x, y, z
+		var angle = performance.now() * 0.001 * 0.1 * 2 * Math.PI;			  //x, y, z
 		var xRotationMatrix = new Float32Array(16);
 		var yRotationMatrix = new Float32Array(16);
 		glMatrix.mat4.rotate(yRotationMatrix, matIdentity, angle, [0, 1, 0]);
-		glMatrix.mat4.rotate(xRotationMatrix, matIdentity, angle / 4, [1, 0, 0]);
+		glMatrix.mat4.rotate(xRotationMatrix, matIdentity, angle * 0.25, [1, 0, 0]);
 		glMatrix.mat4.mul(this.#_matWorldMatrix, yRotationMatrix, xRotationMatrix);
 		//glMatrix.mat4.rotate(this.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
 		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
