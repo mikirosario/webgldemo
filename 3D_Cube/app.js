@@ -96,6 +96,31 @@ var fragmentShaderText =
 '}'
 ].join('\n');
 
+class Rotation {
+	#_rotAxis = [0, 0, 0];
+	#_rotVel = 0.0;
+	static Axis = {
+		'X': 0,
+		'Y': 1,
+		'Z': 2
+	};
+	constructor(rotationAxis, velocity)
+	{
+		if (Rotation.Axis.hasOwnProperty(rotationAxis) == false)
+			throw 'Rotation object instantiation failed: rotationAxis is not an Axis.';
+		this.#_rotAxis[Rotation.Axis[rotationAxis]] = 1;
+		this.#_rotVel = velocity <= 0.0 ? 0.0 : Math.min(velocity, 1.0);
+	}
+	get getAxis()
+	{
+		return this.#_rotAxis;
+	}
+	get getVelocity()
+	{
+		return this.#_rotVel;
+	}
+};
+
 class Triangle {
 	constructor(gl, program)
 	{
@@ -356,7 +381,7 @@ class Cube {
 	#_matWorldMatrix = new Float32Array(16);
 	matViewValue;
 	matProjectionValue;
-
+	//#_rotationMatrices = [new Float32Array(16), new Float32Array(16), new Float32Array(16)];
 	//Private Methods
 	#createCubeBuffer = function ()
 	{
@@ -469,32 +494,30 @@ class Cube {
 		return retVal;
 	}
 
-	//Public Methods
-
-	animate = function(animation)
+	#_draw = function()
 	{
-		animation();
+		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
 		setBckrnd(this.gl);
 		this.gl.drawElements(this.gl.TRIANGLES, this.cubeIndices.length, this.gl.UNSIGNED_SHORT, 0);
-		requestAnimationFrame(() => this.animate(animation)); //ChatGPT taught me how to wrap this call in an anon function, so I can pass it with its argument :D
 	}
 
-	rotate = function()
+	//Public Methods
+
+	rotate = function(...rotations)
 	{
 		//var angle = performance.now() / 1000 / 6 * 2 * Math.PI;			  //x, y, z
 			//ms since window opened / 1000 == seconds since window opened
 			//seconds since window opened / 6 == 1/6 of time since window opened
 			//2 * PI == 1 full rotation 
 			// Every sixth of the time since the window opened, a sixth of a rotation is done?
-		//console.log((performance.now() / 1000 / 6 * 2 * Math.PI) * (180.0 / Math.PI));
-		var angle = performance.now() * 0.001 * 0.1 * 2 * Math.PI;			  //x, y, z
-		var xRotationMatrix = new Float32Array(16);
-		var yRotationMatrix = new Float32Array(16);
-		glMatrix.mat4.rotate(yRotationMatrix, matIdentity, angle, [0, 1, 0]);
-		glMatrix.mat4.rotate(xRotationMatrix, matIdentity, angle * 0.25, [1, 0, 0]);
-		glMatrix.mat4.mul(this.#_matWorldMatrix, yRotationMatrix, xRotationMatrix);
-		//glMatrix.mat4.rotate(this.#_matWorldMatrix, matIdentity, angle, [0, 1, 0]);
-		this.gl.uniformMatrix4fv(this.matWorldUniformLocation, this.gl.FALSE, this.#_matWorldMatrix);
+		var rotAngle = performance.now() * 0.001 * 0.1 * 2 * Math.PI;			  //x, y, z
+		var rotationMatrices = [new Float32Array(matIdentity), new Float32Array(matIdentity), new Float32Array(matIdentity)];
+		for (let i = 0; i < rotations.length; ++i)
+			glMatrix.mat4.rotate(rotationMatrices[i], matIdentity, rotAngle * rotations[i].getVelocity, rotations[i].getAxis);
+		glMatrix.mat4.mul(this.#_matWorldMatrix, rotationMatrices[1], rotationMatrices[0]);
+		glMatrix.mat4.mul(this.#_matWorldMatrix, rotationMatrices[2], this.#_matWorldMatrix);
+		this.#_draw();
+		requestAnimationFrame(() => this.rotate(...rotations.slice(0))); //ChatGPT taught me how to wrap this call in an anon function, so I can pass it with its argument :D
 	}
 
 	Animation =
@@ -610,5 +633,5 @@ var InitDemo = function ()
 	gl.enable(gl.CULL_FACE); //don't do math for culled faces
 	gl.frontFace(gl.CCW); //A face is formed by the order of the vertices appearing counter-clockwise to each other
 	gl.cullFace(gl.BACK); //Cull the faces at the back
-	cube.animate(cube.Animation.ROTATE_Y);
+	cube.rotate(new Rotation('X', 0.25), new Rotation('Y', 1), new Rotation('Z', 0.75));
 }
